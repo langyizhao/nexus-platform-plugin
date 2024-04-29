@@ -87,6 +87,7 @@ class IqPolicyEvaluatorUtil
 
       def proprietaryConfig = iqClient.getProprietaryConfigForApplicationEvaluation(applicationId)
       def advancedProperties = getAdvancedProperties(iqPolicyEvaluator.advancedProperties, loggerBridge)
+      addExclusionsIfNeeded(advancedProperties, expandedScanPatterns)
 
       def licensedFeatures = iqClient.getLicensedFeatures()
 
@@ -293,5 +294,21 @@ class IqPolicyEvaluatorUtil
       }
       throw new AbortException(Messages.IqPolicyEvaluation_NodeContextRequired())
     }
+  }
+
+  private static void addExclusionsIfNeeded(Properties advancedProperties, List<String> scanPatterns) {
+    if (!scanPatterns) {
+      return
+    }
+    def excludeScanPatterns = scanPatterns.findAll{it.startsWith(RemoteScanner.EXCLUDE_MARKER)}.collect{it.substring(1)}
+    def fileExcludes = advancedProperties.getProperty("fileExcludes", '')
+    for (String pattern : excludeScanPatterns) {
+      if (fileExcludes.length() > 0) {
+        fileExcludes += ',' + pattern
+      } else {
+        fileExcludes = pattern
+      }
+    }
+    advancedProperties.setProperty("fileExcludes", fileExcludes)
   }
 }
